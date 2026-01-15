@@ -38,7 +38,6 @@ log_error() {
 check_dependencies() {
     log_info "Проверка зависимостей..."
 
-    # Проверка Go
     if ! command -v go &> /dev/null; then
         log_error "Go не установлен. Требуется версия 1.25.6"
         exit 1
@@ -47,11 +46,6 @@ check_dependencies() {
     GO_VERSION=$(go version | grep -o 'go[0-9]\+\.[0-9]\+\.[0-9]\+' | sed 's/go//')
     log_info "Установлена Go версии: $GO_VERSION"
 
-    if [[ "$GO_VERSION" != "1.25.6" ]]; then
-        log_warning "Установлена Go $GO_VERSION, рекомендуется 1.25.6"
-    fi
-
-    # Проверка директорий
     if [[ ! -d "$PROJECT_ROOT" ]]; then
         log_error "Директория проекта не найдена: $PROJECT_ROOT"
         exit 1
@@ -64,16 +58,8 @@ check_dependencies() {
 create_project_structure() {
     log_info "Создание структуры проекта..."
 
-    # Создание основной директории бэкенда
     mkdir -p "$BACKEND_DIR"
     log_info "Создана директория: $BACKEND_DIR"
-
-    # Загрузка вспомогательных функций
-    source "$SCRIPT_DIR/create_helpers.sh"
-
-    # Создание базовых файлов
-    echo "# AutoJobSearch Backend" > "$BACKEND_DIR/README.md"
-    echo "1.0.0" > "$BACKEND_DIR/VERSION"
 
     # Выполнение всех скриптов создания
     local scripts=(
@@ -88,9 +74,12 @@ create_project_structure() {
     )
 
     for script in "${scripts[@]}"; do
-        if [[ -f "$SCRIPT_DIR/$script" ]]; then
+        local script_path="$SCRIPT_DIR/$script"
+        if [[ -f "$script_path" ]]; then
             log_info "Выполнение скрипта: $script"
-            bash "$SCRIPT_DIR/$script"
+            # Источник вспомогательных функций для каждого скрипта
+            export BACKEND_DIR SCRIPT_DIR PROJECT_ROOT
+            bash "$script_path"
         else
             log_error "Скрипт не найден: $script"
         fi
@@ -102,10 +91,7 @@ create_project_structure() {
 # Установка прав
 set_permissions() {
     log_info "Установка прав на скрипты..."
-
     chmod +x "$SCRIPT_DIR"/*.sh
-    chmod +x "$BACKEND_DIR"/scripts/*.sh 2>/dev/null || true
-
     log_success "Права установлены"
 }
 
@@ -113,7 +99,6 @@ set_permissions() {
 final_check() {
     log_info "Финальная проверка структуры..."
 
-    # Проверка основных директорий
     local required_dirs=(
         "$BACKEND_DIR/cmd"
         "$BACKEND_DIR/internal"
@@ -124,35 +109,14 @@ final_check() {
 
     for dir in "${required_dirs[@]}"; do
         if [[ -d "$dir" ]]; then
-            log_success "Директория существует: $dir"
+            log_success "Директория существует: $(basename "$dir")"
         else
-            log_error "Директория отсутствует: $dir"
+            log_error "Директория отсутствует: $(basename "$dir")"
         fi
     done
 
-    # Проверка основных файлов
-    local required_files=(
-        "$BACKEND_DIR/go.mod"
-        "$BACKEND_DIR/go.sum"
-        "$BACKEND_DIR/Makefile"
-        "$BACKEND_DIR/Dockerfile"
-        "$BACKEND_DIR/.env.example"
-    )
-
-    for file in "${required_files[@]}"; do
-        if [[ -f "$file" ]]; then
-            log_success "Файл существует: $file"
-        else
-            log_error "Файл отсутствует: $file"
-        fi
-    done
-
-    # Подсчет файлов
-    local file_count=$(find "$BACKEND_DIR" -type f -name "*.go" | wc -l)
+    local file_count=$(find "$BACKEND_DIR" -type f -name "*.go" 2>/dev/null | wc -l)
     log_info "Создано Go файлов: $file_count"
-
-    local total_count=$(find "$BACKEND_DIR" -type f | wc -l)
-    log_info "Всего файлов создано: $total_count"
 }
 
 # Основная функция
@@ -160,30 +124,17 @@ main() {
     echo -e "${BLUE}========================================${NC}"
     echo -e "${BLUE}  AutoJobSearch Backend Project Creator ${NC}"
     echo -e "${BLUE}========================================${NC}"
-    echo ""
 
-    log_info "Начало создания структуры проекта"
-    log_info "Рабочая директория: $BACKEND_DIR"
-
-    # Проверка и создание
     check_dependencies
     create_project_structure
     set_permissions
     final_check
 
-    echo ""
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}  Проект успешно создан!                ${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo ""
-    echo "Следующие шаги:"
-    echo "1. Настроить переменные окружения в .env файле"
-    echo "2. Выполнить: cd $BACKEND_DIR"
-    echo "3. Запустить: make deps"
-    echo "4. Запустить: make run"
-    echo ""
-    echo "Для получения помощи: make help"
+    echo "Структура создана в: $BACKEND_DIR"
 }
 
-# Запуск основной функции
 main "$@"
