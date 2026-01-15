@@ -2,6 +2,11 @@
 
 # Вспомогательные функции для создания проекта
 
+# Определение глобальных переменных
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BACKEND_DIR="$PROJECT_ROOT/backend"
+
 # Создание директории с проверкой
 create_dir() {
     if [[ ! -d "$1" ]]; then
@@ -33,7 +38,9 @@ create_go_file() {
     local go_content="package $package_name"
 
     if [[ -n "$content" ]]; then
-        go_content="$go_content\n\n$content"
+        go_content="$go_content
+
+$content"
     fi
 
     create_file "$file_path" "$go_content"
@@ -81,13 +88,6 @@ file_exists() {
 # Проверка существования директории
 dir_exists() {
     [[ -d "$1" ]] && return 0 || return 1
-}
-
-# Получение относительного пути
-get_relative_path() {
-    python3 -c "import os.path; print(os.path.relpath('$1', '$2'))" 2>/dev/null || \
-    realpath --relative-to="$2" "$1" 2>/dev/null || \
-    echo "$1"
 }
 
 # Форматирование Go кода

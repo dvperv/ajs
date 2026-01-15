@@ -1,20 +1,18 @@
 #!/bin/bash
 
 # Скрипт для создания конфигурационных файлов
-# Запуск: ./create_configs.sh
 
-source "$(dirname "$0")/create_helpers.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/create_helpers.sh"
 
 create_configs() {
-    echo "========================================"
     echo "Создание конфигурационных файлов..."
-    echo "========================================"
 
     # Создание директории config
     create_dir "$BACKEND_DIR/config"
 
     # Создание config.go
-    create_go_file "$BACKEND_DIR/config/config.go" "config" "$(cat <<'EOF'
+    create_file "$BACKEND_DIR/config/config.go" "$(cat <<'EOF'
 package config
 
 import (
@@ -164,15 +162,8 @@ func getEnvAsInt(key string, defaultValue int) int {
 EOF
 )"
 
-    echo "✅ Конфигурационные файлы созданы"
+    echo "Конфигурационные файлы созданы"
 }
-
-# Проверка переменных окружения
-if [[ -z "$BACKEND_DIR" ]]; then
-    echo "Ошибка: BACKEND_DIR не определена"
-    echo "Запустите скрипт через create_backend.sh"
-    exit 1
-fi
 
 # Запуск функции
 create_configs

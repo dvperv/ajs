@@ -10,9 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 
-# Экспортируем BACKEND_DIR для дочерних скриптов
-export BACKEND_DIR
-
 # Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -48,6 +45,8 @@ check_dependencies() {
     fi
 
     GO_VERSION=$(go version | grep -o 'go[0-9]\+\.[0-9]\+\.[0-9]\+' | sed 's/go//')
+    log_info "Установлена Go версии: $GO_VERSION"
+
     if [[ "$GO_VERSION" != "1.25.6" ]]; then
         log_warning "Установлена Go $GO_VERSION, рекомендуется 1.25.6"
     fi
@@ -91,15 +90,9 @@ create_project_structure() {
     for script in "${scripts[@]}"; do
         if [[ -f "$SCRIPT_DIR/$script" ]]; then
             log_info "Выполнение скрипта: $script"
-            if bash "$SCRIPT_DIR/$script"; then
-                log_success "Скрипт $script выполнен успешно"
-            else
-                log_error "Ошибка выполнения скрипта $script"
-                exit 1
-            fi
+            bash "$SCRIPT_DIR/$script"
         else
             log_error "Скрипт не найден: $script"
-            exit 1
         fi
     done
 
@@ -127,14 +120,13 @@ final_check() {
         "$BACKEND_DIR/pkg"
         "$BACKEND_DIR/api"
         "$BACKEND_DIR/config"
-        "$BACKEND_DIR/scripts"
     )
 
     for dir in "${required_dirs[@]}"; do
         if [[ -d "$dir" ]]; then
-            log_success "Директория существует: $(get_relative_path "$dir" "$PROJECT_ROOT")"
+            log_success "Директория существует: $dir"
         else
-            log_error "Директория отсутствует: $(get_relative_path "$dir" "$PROJECT_ROOT")"
+            log_error "Директория отсутствует: $dir"
         fi
     done
 
@@ -149,17 +141,17 @@ final_check() {
 
     for file in "${required_files[@]}"; do
         if [[ -f "$file" ]]; then
-            log_success "Файл существует: $(get_relative_path "$file" "$PROJECT_ROOT")"
+            log_success "Файл существует: $file"
         else
-            log_error "Файл отсутствует: $(get_relative_path "$file" "$PROJECT_ROOT")"
+            log_error "Файл отсутствует: $file"
         fi
     done
 
     # Подсчет файлов
-    local file_count=$(find "$BACKEND_DIR" -type f -name "*.go" 2>/dev/null | wc -l)
+    local file_count=$(find "$BACKEND_DIR" -type f -name "*.go" | wc -l)
     log_info "Создано Go файлов: $file_count"
 
-    local total_count=$(find "$BACKEND_DIR" -type f 2>/dev/null | wc -l)
+    local total_count=$(find "$BACKEND_DIR" -type f | wc -l)
     log_info "Всего файлов создано: $total_count"
 }
 
